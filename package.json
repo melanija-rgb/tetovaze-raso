@@ -1,0 +1,14 @@
+{
+  "name": "tetovazeras",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tetovažе Raš — booking + admin (Netlify)",
+  "scripts": {
+    "dev": "node scripts/local-server.js",
+    "test:flow": "node scripts/test-flow.js",
+    "test:prod": "node scripts/test-production-flow.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^9.1.1"
+  }
+}

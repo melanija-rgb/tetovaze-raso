@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin — Тетоваже Рашо</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <section class="login-card" data-login-view>
+        <h1>Admin login</h1>
+        <p class="login-note">Pristup terminima i galeriji</p>
+        <form data-login-form>
+          <label class="field">
+            <span>Lozinka</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <p class="msg error" data-login-error hidden></p>
+          <button type="submit">Prijavi se</button>
+        </form>
+        <a class="back-link" href="/">← Nazad na sajt</a>
+      </section>
+
+      <section class="dashboard" data-dashboard hidden>
+        <header class="dash-head">
+          <div>
+            <h1>Admin panel</h1>
+            <p>Тетоваже Рашо</p>
+          </div>
+          <div class="dash-actions">
+            <a href="/">Javna stranica</a>
+            <button type="button" data-logout>Odjava</button>
+          </div>
+        </header>
+
+        <nav class="tabs" aria-label="Admin sekcije">
+          <button type="button" class="tab is-active" data-tab="bookings">Termini</button>
+          <button type="button" class="tab" data-tab="gallery">Galerija</button>
+        </nav>
+
+        <section class="panel is-active" data-panel="bookings">
+          <div class="panel-head">
+            <h2>Rezervacije</h2>
+            <button type="button" data-refresh-bookings>Osveži</button>
+          </div>
+          <p class="panel-note">Termini sa javne stranice učitavaju se uživo iz baze preko API-ja.</p>
+          <p class="msg error" data-bookings-error hidden></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Vrijeme</th>
+                  <th>Ime</th>
+                  <th>Telefon</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody data-bookings-body>
+                <tr>
+                  <td colspan="6">Učitavanje…</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" data-panel="gallery">
+          <div class="panel-head">
+            <h2>Galerija slika</h2>
+            <div class="panel-head-actions">
+              <span class="gallery-count" data-gallery-count></span>
+              <button type="button" data-refresh-gallery>Osveži</button>
+            </div>
+          </div>
+          <p class="panel-note">Sve slike iz baze — obriši one koje ne želiš na sajtu, ili dodaj nove.</p>
+
+          <form class="upload-form" data-upload-form>
+            <label class="field">
+              <span>Slika</span>
+              <input type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif" required />
+            </label>
+            <button type="submit" data-upload-btn>Dodaj sliku</button>
+            <p class="msg error" data-upload-error hidden></p>
+            <p class="msg ok" data-upload-ok hidden></p>
+          </form>
+
+          <div class="admin-gallery" data-admin-gallery></div>
+        </section>
+      </section>
+    </main>
+
+    <script src="admin.js?v=3"></script>
+  </body>
+</html>

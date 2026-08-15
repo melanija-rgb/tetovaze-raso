@@ -1,0 +1,29 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = [
+    "netlify/functions/_shared/**",
+    "assets/gallery/manifest.json",
+    "assets/gallery/*.png",
+    "assets/gallery/*.jpg",
+    "assets/gallery/*.jpeg",
+    "assets/gallery/*.webp"
+  ]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    Cache-Control = "no-store"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

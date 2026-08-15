@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="sr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тетоваже Рашо — Tattoo Artist, Banja Luka</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="menu-bar">
+      <button
+        class="hamburger"
+        type="button"
+        data-menu-toggle
+        aria-expanded="false"
+        aria-controls="site-menu"
+        aria-label="Otvori meni"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <div class="menu-backdrop" data-menu-backdrop hidden></div>
+    <nav class="menu-panel" id="site-menu" data-menu-panel hidden>
+      <a class="menu-link is-active" href="/" data-menu-close>Početna</a>
+      <a class="menu-link" href="/book.html?direct=1" data-menu-close>Zakaži termin</a>
+      <a class="menu-link" href="/gallery.html" data-menu-close>Galerija</a>
+      <a class="menu-link" href="/video.html" data-menu-close>Video</a>
+      <div class="menu-contact">
+        <p class="menu-contact-label">Kontakt</p>
+        <a class="menu-contact-link" href="tel:+38765798135" data-menu-close>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.68 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.25a2 2 0 0 1 2.11-.45c.74.32 1.53.55 2.34.68A2 2 0 0 1 22 16.92z"/></svg>
+          <span>+387 65 798 135</span>
+        </a>
+        <a class="menu-contact-link" href="mailto:raso_mikic@hotmail.com" data-menu-close>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/></svg>
+          <span>raso_mikic@hotmail.com</span>
+        </a>
+        <a class="menu-contact-link" href="https://www.instagram.com/raso_mikic/" target="_blank" rel="noopener noreferrer" data-menu-close>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+          <span>Instagram</span>
+        </a>
+      </div>
+    </nav>
+
+    <main class="stage stage--home">
+      <div class="glow" aria-hidden="true"></div>
+
+      <header class="brand">
+        <img
+          class="logo"
+          src="assets/logo.png"
+          alt="Тетоваже Рашо — Студио за тетовирање"
+        />
+        <p class="role">Tattoo Artist</p>
+        <p class="name">Rašo Mikić</p>
+        <p class="place">Banja Luka</p>
+
+        <a class="book-btn" href="/book.html">
+          Zakaži termin za konsultacije
+        </a>
+      </header>
+    </main>
+
+    <script src="menu.js?v=1"></script>
+  </body>
+</html>
