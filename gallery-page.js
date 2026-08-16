@@ -12,13 +12,47 @@ function itemSrc(item) {
   return item.url;
 }
 
+function itemsFromManifest(manifest) {
+  if (!Array.isArray(manifest)) return [];
+  return manifest
+    .map((entry, index) => {
+      const staticPath = String(entry.src || "").replace(/^\/+/, "");
+      if (!staticPath) return null;
+      return {
+        id: `static_${String(index + 1).padStart(2, "0")}`,
+        name: "",
+        source: "static",
+        staticPath,
+        url: `/${staticPath}`,
+      };
+    })
+    .filter(Boolean);
+}
+
 async function loadGallery() {
   if (!galleryGrid) return;
+
   try {
-    const res = await fetch(`${API}/gallery`);
-    const data = await res.json();
+    const [manifestRes, apiRes] = await Promise.all([
+      fetch("/assets/gallery/manifest.json", { cache: "no-store" }),
+      fetch(`${API}/gallery`),
+    ]);
+
+    let staticItems = [];
+    if (manifestRes.ok) {
+      staticItems = itemsFromManifest(await manifestRes.json());
+    }
+
+    let uploaded = [];
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      uploaded = Array.isArray(data.items)
+        ? data.items.filter((item) => item.source !== "static")
+        : [];
+    }
+
+    const items = [...uploaded, ...staticItems];
     galleryGrid.innerHTML = "";
-    const items = res.ok && Array.isArray(data.items) ? data.items : [];
 
     if (!items.length) {
       galleryGrid.innerHTML = '<p class="gallery-empty">Galerija uskoro.</p>';

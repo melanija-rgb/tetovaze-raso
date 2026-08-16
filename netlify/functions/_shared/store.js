@@ -3,13 +3,35 @@ const path = require("path");
 const crypto = require("crypto");
 
 let getStore = null;
+let connectLambda = null;
 try {
-  ({ getStore } = require("@netlify/blobs"));
+  const blobs = require("@netlify/blobs");
+  getStore = blobs.getStore;
+  connectLambda = blobs.connectLambda;
 } catch {
   getStore = null;
+  connectLambda = null;
 }
 
 const LOCAL_DIR = path.join(process.cwd(), ".data");
+const STORE_NAME = "tetovazeras-data";
+
+function isNetlifyRuntime() {
+  return Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
+/**
+ * Lambda compatibility mode does not auto-wire Blobs.
+ * Call this at the start of every function handler that uses the store.
+ */
+function initBlobs(event) {
+  if (!connectLambda || !event) return;
+  try {
+    connectLambda(event);
+  } catch {
+    // getStore may still succeed via env / explicit credentials
+  }
+}
 
 function ensureLocalDir(sub) {
   const dir = path.join(LOCAL_DIR, sub);
@@ -28,20 +50,52 @@ function forceLocal() {
 
 function getBlobStore() {
   if (forceLocal() || !getStore) return null;
+
   try {
-    return getStore({ name: "tetovazeras-data", consistency: "strong" });
+    // Default edge access after connectLambda(event).
+    // Avoid consistency:"strong" — Lambda context often lacks uncachedEdgeURL.
+    return getStore(STORE_NAME);
   } catch {
-    return null;
+    // Manual credentials fallback (optional env for CLI / edge cases)
+    const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+    const token =
+      process.env.NETLIFY_BLOBS_TOKEN ||
+      process.env.NETLIFY_AUTH_TOKEN ||
+      process.env.BLOBS_TOKEN;
+    if (!siteID || !token) return null;
+    try {
+      return getStore({
+        name: STORE_NAME,
+        siteID,
+        token,
+      });
+    } catch {
+      return null;
+    }
   }
 }
 
 async function withStore(blobFn, localFn) {
+  if (forceLocal()) return localFn();
+
   const store = getBlobStore();
-  if (!store) return localFn();
+  if (!store) {
+    // Never write to /var/task on Netlify Functions — filesystem is read-only.
+    if (isNetlifyRuntime()) {
+      const err = new Error("Netlify Blobs nije dostupan.");
+      err.statusCode = 503;
+      throw err;
+    }
+    return localFn();
+  }
+
   try {
     return await blobFn(store);
   } catch (error) {
-    if (/missing|context|token|blobs/i.test(String(error?.message || error))) {
+    if (
+      !isNetlifyRuntime() &&
+      /missing|context|token|blobs/i.test(String(error?.message || error))
+    ) {
       return localFn();
     }
     throw error;
@@ -53,6 +107,8 @@ function findGalleryAssetsDir() {
     path.join(process.cwd(), "assets", "gallery"),
     path.join(__dirname, "..", "..", "..", "assets", "gallery"),
     path.join(__dirname, "..", "..", "assets", "gallery"),
+    path.join(__dirname, "assets", "gallery"),
+    path.join(__dirname, "..", "assets", "gallery"),
   ];
   return candidates.find((dir) => fs.existsSync(path.join(dir, "manifest.json"))) || null;
 }
@@ -213,20 +269,24 @@ async function deleteGalleryImage(id) {
  * First-run seed: register portfolio images into shared DB index.
  * Static files stay on CDN/disk; admin uploads go into Blobs/.data.
  * Admin deletes stay deleted (no re-sync of removed static ids).
+ * Images do not need to exist inside the function bundle — only the manifest does.
  */
-async function ensureGallerySeeded() {
-  const existing = await getGalleryIndex();
-  if (existing.length > 0) return existing;
-
+function buildStaticSeed() {
   const dir = findGalleryAssetsDir();
-  if (!dir) return [];
+  const manifestCandidates = [
+    dir ? path.join(dir, "manifest.json") : null,
+    path.join(process.cwd(), "assets", "gallery", "manifest.json"),
+    path.join(__dirname, "..", "..", "..", "assets", "gallery", "manifest.json"),
+    path.join(__dirname, "..", "..", "assets", "gallery", "manifest.json"),
+  ].filter(Boolean);
 
-  const manifestPath = path.join(dir, "manifest.json");
-  if (!fs.existsSync(manifestPath)) return [];
+  const manifestPath = manifestCandidates.find((p) => fs.existsSync(p));
+  if (!manifestPath) return [];
 
   let manifest = [];
   try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    const raw = fs.readFileSync(manifestPath, "utf8").replace(/^\uFEFF/, "");
+    manifest = JSON.parse(raw);
   } catch {
     return [];
   }
@@ -236,8 +296,7 @@ async function ensureGallerySeeded() {
   for (let i = 0; i < manifest.length; i += 1) {
     const entry = manifest[i];
     const fileName = path.basename(String(entry.src || ""));
-    const filePath = path.join(dir, fileName);
-    if (!fileName || !fs.existsSync(filePath)) continue;
+    if (!fileName) continue;
 
     const staticPath = `assets/gallery/${fileName}`.replace(/\\/g, "/");
     seeded.push({
@@ -249,14 +308,53 @@ async function ensureGallerySeeded() {
       staticPath,
     });
   }
-
-  if (!seeded.length) return [];
-
-  const again = await getGalleryIndex();
-  if (again.length > 0) return again;
-
-  await setGalleryIndex(seeded);
   return seeded;
+}
+
+async function ensureGallerySeeded() {
+  const seeded = buildStaticSeed();
+  let existing = [];
+  try {
+    existing = await getGalleryIndex();
+  } catch {
+    existing = [];
+  }
+
+  if (!existing.length) {
+    if (!seeded.length) return [];
+    try {
+      await setGalleryIndex(seeded);
+    } catch {
+      // Persist failed — still serve static portfolio from CDN.
+    }
+    return seeded;
+  }
+
+  // Merge newly added static files from manifest without restoring deleted ones.
+  const knownPaths = new Set(
+    existing.filter((item) => item.source === "static" && item.staticPath).map((item) => item.staticPath)
+  );
+  const missing = seeded.filter((item) => !knownPaths.has(item.staticPath));
+  if (!missing.length) return existing;
+
+  const maxStaticNum = existing.reduce((max, item) => {
+    const match = String(item.id || "").match(/^static_(\d+)$/);
+    if (!match) return max;
+    return Math.max(max, Number(match[1]));
+  }, 0);
+
+  const additions = missing.map((item, index) => ({
+    ...item,
+    id: `static_${String(maxStaticNum + index + 1).padStart(2, "0")}`,
+  }));
+  const merged = [...additions, ...existing];
+
+  try {
+    await setGalleryIndex(merged);
+  } catch {
+    // Still return merged list for this request.
+  }
+  return merged;
 }
 
 function resolveGalleryItemFile(item) {
@@ -301,6 +399,7 @@ function publicGalleryItem(item) {
 }
 
 module.exports = {
+  initBlobs,
   listBookings,
   getBooking,
   saveBooking,

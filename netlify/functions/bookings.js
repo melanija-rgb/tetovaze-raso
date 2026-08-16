@@ -1,6 +1,7 @@
 const { json, noContent, readJson } = require("./_shared/http");
 const { requireAdmin } = require("./_shared/auth");
 const {
+  initBlobs,
   listBookings,
   saveBooking,
   deleteBooking,
@@ -33,6 +34,7 @@ function isValidDate(iso) {
 }
 
 exports.handler = async (event) => {
+  initBlobs(event);
   if (event.httpMethod === "OPTIONS") return noContent();
 
   try {

@@ -6,11 +6,7 @@
   node_bundler = "esbuild"
   included_files = [
     "netlify/functions/_shared/**",
-    "assets/gallery/manifest.json",
-    "assets/gallery/*.png",
-    "assets/gallery/*.jpg",
-    "assets/gallery/*.jpeg",
-    "assets/gallery/*.webp"
+    "assets/gallery/manifest.json"
   ]
 
 [[redirects]]

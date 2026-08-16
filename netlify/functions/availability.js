@@ -1,7 +1,8 @@
 const { json, noContent } = require("./_shared/http");
-const { listBookings } = require("./_shared/store");
+const { initBlobs, listBookings } = require("./_shared/store");
 
 exports.handler = async (event) => {
+  initBlobs(event);
   if (event.httpMethod === "OPTIONS") return noContent();
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });
@@ -18,6 +19,6 @@ exports.handler = async (event) => {
 
     return json(200, { date, taken });
   } catch (error) {
-    return json(500, { error: error.message || "Server error" });
+    return json(error.statusCode || 500, { error: error.message || "Server error" });
   }
 };

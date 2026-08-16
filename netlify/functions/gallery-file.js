@@ -1,5 +1,6 @@
 const { corsHeaders, json, noContent } = require("./_shared/http");
 const {
+  initBlobs,
   getGalleryIndex,
   getGalleryImage,
   resolveGalleryItemFile,
@@ -7,6 +8,7 @@ const {
 } = require("./_shared/store");
 
 exports.handler = async (event) => {
+  initBlobs(event);
   if (event.httpMethod === "OPTIONS") return noContent();
   if (event.httpMethod !== "GET") {
     return json(405, { error: "Method not allowed" });

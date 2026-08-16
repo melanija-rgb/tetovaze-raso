@@ -1,6 +1,7 @@
 const { json, noContent, readJson } = require("./_shared/http");
 const { requireAdmin } = require("./_shared/auth");
 const {
+  initBlobs,
   getGalleryIndex,
   setGalleryIndex,
   saveGalleryImage,
@@ -14,6 +15,7 @@ const MAX_BYTES = 4.5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 exports.handler = async (event) => {
+  initBlobs(event);
   if (event.httpMethod === "OPTIONS") return noContent();
 
   try {

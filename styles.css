@@ -320,8 +320,13 @@ body.is-locked {
   display: none;
 }
 
+.page-book .menu-bar {
+  display: none;
+}
+
 .page-book .booking-overlay {
   background: #000;
+  z-index: 40;
 }
 
 .page-book .booking-overlay.is-ready {
@@ -650,6 +655,7 @@ body.is-locked {
   position: absolute;
   top: 0.55rem;
   right: 0.7rem;
+  z-index: 2;
   border: none;
   background: transparent;
   color: var(--ink);
@@ -657,6 +663,12 @@ body.is-locked {
   line-height: 1;
   cursor: pointer;
   text-decoration: none;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin: 0;
+  padding: 0;
 }
 
 .booking-title {
@@ -967,8 +979,8 @@ body.is-locked {
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.55rem;
 }
 
 @media (min-width: 720px) {
@@ -1044,6 +1056,32 @@ body.is-locked {
   max-height: 78vh;
   object-fit: contain;
   border: 1px solid var(--line);
+}
+
+@media (max-width: 719px) {
+  .gallery-section--page {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .gallery-item {
+    aspect-ratio: 4 / 5;
+  }
+
+  .lightbox {
+    padding: 0.65rem;
+  }
+
+  .lightbox-frame {
+    max-width: 100%;
+    max-height: 94vh;
+  }
+
+  .lightbox-frame img {
+    max-height: min(86vh, 100dvh - 4.5rem);
+    width: auto;
+  }
 }
 
 .lightbox-frame figcaption {
