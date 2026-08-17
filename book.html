@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=menu3" />
   </head>
   <body class="page-book">
     <header class="menu-bar">
@@ -126,16 +126,7 @@
       </div>
 
       <div class="ink-intro" data-ink-intro aria-hidden="true">
-        <div class="ink-pane ink-pane--a" data-ink-pane-a>
-          <div class="ink-pane-face"></div>
-        </div>
-        <div class="ink-pane ink-pane--b" data-ink-pane-b>
-          <div class="ink-pane-face"></div>
-        </div>
-
         <div class="ink-stage" data-ink-stage>
-          <div class="ink-flash" data-ink-flash aria-hidden="true"></div>
-
           <div class="ink-write" data-ink-write>
             <div class="ink-line" data-ink-line>
               <p class="ink-script">
@@ -155,19 +146,14 @@
               </div>
             </div>
           </div>
-
-          <svg class="ink-crack" data-ink-crack viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <path class="ink-crack-bolt ink-crack-bolt--1" data-crack-1 fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round" stroke-linejoin="round" />
-            <path class="ink-crack-bolt ink-crack-bolt--2" data-crack-2 fill="none" stroke="currentColor" stroke-width="0.35" stroke-linecap="round" stroke-linejoin="round" />
-            <path class="ink-crack-bolt ink-crack-bolt--3" data-crack-3 fill="none" stroke="currentColor" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round" />
-            <path class="ink-crack-bolt ink-crack-bolt--4" data-crack-4 fill="none" stroke="currentColor" stroke-width="0.28" stroke-linecap="round" stroke-linejoin="round" />
-            <path class="ink-crack-bolt ink-crack-bolt--5" data-crack-5 fill="none" stroke="currentColor" stroke-width="0.28" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
         </div>
+
+        <canvas class="ink-burst" data-ink-burst aria-hidden="true"></canvas>
+        <div class="ink-flash" data-ink-flash aria-hidden="true"></div>
       </div>
     </div>
 
-    <script src="menu.js?v=2"></script>
-    <script src="script.js?v=book6"></script>
+    <script src="menu.js?v=3"></script>
+    <script src="script.js?v=book15"></script>
   </body>
 </html>

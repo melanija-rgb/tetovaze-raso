@@ -35,7 +35,13 @@
   panel.querySelector("[data-menu-contact-toggle]")?.addEventListener("click", (event) => {
     event.preventDefault();
     const contactItems = panel.querySelector("[data-menu-contact-items]");
-    setContactOpen(Boolean(contactItems?.hidden));
+    const willOpen = Boolean(contactItems?.hidden);
+    setContactOpen(willOpen);
+    if (willOpen && contactItems) {
+      requestAnimationFrame(() => {
+        contactItems.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    }
   });
 
   panel.querySelectorAll("[data-menu-close]").forEach((el) => {

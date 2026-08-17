@@ -98,12 +98,18 @@ body.is-locked {
   z-index: 29;
   width: min(18rem, 82vw);
   height: 100%;
-  padding: 5rem 1.4rem 2rem;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 5rem 1.4rem max(2rem, env(safe-area-inset-bottom, 0px));
   background: #111;
   border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   transform: translateX(0);
   animation: menu-slide 0.28s ease;
 }
@@ -207,7 +213,9 @@ body.is-locked {
 
 .menu-contact-link span {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 .menu-contact-link svg {
@@ -406,75 +414,25 @@ body.is-locked {
   animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* —— Tattoo intro / glass shatter —— */
+/* —— Intro: typing machine + cinematic glass shatter —— */
 .ink-intro {
-  --impact-x: 50%;
-  --impact-y: 50%;
-  --gap: 0%;
   position: absolute;
   inset: 0;
   z-index: 5;
   overflow: hidden;
   pointer-events: none;
+  background: #050505;
+}
+
+.ink-intro.is-shattering {
+  background: #050505;
 }
 
 .ink-intro.is-done {
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
-}
-
-.ink-pane {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  will-change: transform, clip-path;
-}
-
-.ink-pane-face {
-  width: 100%;
-  height: 100%;
-  background: #000;
-  box-shadow: inset 0 0 40px rgba(10, 217, 245, 0.04);
-}
-
-/* Start as one solid screen via pane A; B dormant */
-.ink-pane--a {
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
-}
-
-.ink-pane--b {
-  clip-path: polygon(0 0, 0 0, 0 0);
-}
-
-/* Seam opens at impact X — like a window crack */
-.ink-intro.is-cracked .ink-pane--a {
-  clip-path: polygon(
-    0 0,
-    calc(var(--impact-x) - var(--gap)) 0,
-    calc(var(--impact-x) - var(--gap)) 100%,
-    0 100%
-  );
-}
-
-.ink-intro.is-cracked .ink-pane--b {
-  clip-path: polygon(
-    calc(var(--impact-x) + var(--gap)) 0,
-    100% 0,
-    100% 100%,
-    calc(var(--impact-x) + var(--gap)) 100%
-  );
-}
-
-/* Window shutters slide left / right */
-.ink-intro.is-split .ink-pane--a {
-  transform: translate3d(-102%, 0, 0);
-  transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-
-.ink-intro.is-split .ink-pane--b {
-  transform: translate3d(102%, 0, 0);
-  transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition: opacity 0.35s ease, visibility 0s linear 0.35s;
 }
 
 .ink-stage {
@@ -483,33 +441,13 @@ body.is-locked {
   z-index: 4;
   display: grid;
   place-items: center;
-  background: #000;
-  transition: opacity 0.25s ease, background 0.2s ease;
+  background: #050505;
+  transition: opacity 0.2s ease;
 }
 
-.ink-intro.is-cracked .ink-stage {
-  background: transparent;
-}
-
-.ink-intro.is-split .ink-stage {
+.ink-intro.is-shattering .ink-stage {
   opacity: 0;
   pointer-events: none;
-}
-
-.ink-flash {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  border-radius: 50%;
-  background: #fff;
-  opacity: 0;
-  z-index: 6;
-  pointer-events: none;
-}
-
-.ink-intro.is-cracking .ink-flash {
-  animation: bolt-flash 0.55s ease-out forwards;
 }
 
 .ink-write {
@@ -517,13 +455,15 @@ body.is-locked {
   z-index: 5;
   display: grid;
   place-items: center;
-  padding: 1.5rem;
-  max-width: 94vw;
+  padding: 1.25rem;
+  max-width: min(94vw, 40rem);
+  width: 100%;
 }
 
 .ink-line {
   position: relative;
   display: inline-block;
+  max-width: 100%;
   min-width: 2ch;
   padding: 3.2rem 0.4rem 0.35rem;
 }
@@ -579,58 +519,41 @@ body.is-locked {
   transform: translateY(0.06em);
 }
 
-.ink-crack {
+.ink-burst {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  color: #b8f7ff;
-  opacity: 0;
+  z-index: 3;
   pointer-events: none;
-  z-index: 7;
-  filter:
-    drop-shadow(0 0 4px rgba(10, 217, 245, 0.95))
-    drop-shadow(0 0 14px rgba(255, 255, 255, 0.55));
 }
 
-.ink-intro.is-cracking .ink-write {
+.ink-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(220, 228, 236, 0.55) 35%,
+    rgba(180, 190, 200, 0.2) 70%,
+    transparent 100%
+  );
 }
 
-.ink-intro.is-cracking .ink-crack {
-  opacity: 1;
+.ink-intro.is-flashing .ink-flash {
+  animation: shatter-flash 0.32s ease-out forwards;
 }
 
-.ink-crack-bolt {
-  stroke-dasharray: 420;
-  stroke-dashoffset: 420;
-  fill: none;
-}
-
-.ink-intro.is-cracking .ink-crack-bolt--1 {
-  animation: crack-draw 0.42s cubic-bezier(0.15, 0.85, 0.25, 1) forwards;
-}
-
-.ink-intro.is-cracking .ink-crack-bolt--2 {
-  animation: crack-draw 0.34s cubic-bezier(0.15, 0.85, 0.25, 1) 0.06s forwards;
-}
-
-.ink-intro.is-cracking .ink-crack-bolt--3 {
-  animation: crack-draw 0.34s cubic-bezier(0.15, 0.85, 0.25, 1) 0.08s forwards;
-}
-
-.ink-intro.is-cracking .ink-crack-bolt--4 {
-  animation: crack-draw 0.28s cubic-bezier(0.15, 0.85, 0.25, 1) 0.12s forwards;
-}
-
-.ink-intro.is-cracking .ink-crack-bolt--5 {
-  animation: crack-draw 0.28s cubic-bezier(0.15, 0.85, 0.25, 1) 0.14s forwards;
-}
-
-.ink-intro.is-split .ink-crack {
-  opacity: 0;
-  transition: opacity 0.15s ease;
+@keyframes shatter-flash {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes machine-buzz {
@@ -649,44 +572,64 @@ body.is-locked {
   }
 }
 
-@keyframes bolt-flash {
-  0% {
-    opacity: 1;
-    box-shadow:
-      0 0 0 0 rgba(255, 255, 255, 0.95),
-      0 0 30px 18px rgba(10, 217, 245, 0.75),
-      0 0 80px 40px rgba(10, 217, 245, 0.25);
+@media (max-width: 719px) {
+  .menu-panel {
+    width: min(19rem, 88vw);
+    padding: 4.1rem 1.05rem max(1.75rem, env(safe-area-inset-bottom, 0px));
+    gap: 0.3rem;
   }
-  35% {
-    opacity: 1;
-    box-shadow:
-      0 0 0 2px rgba(255, 255, 255, 0.7),
-      0 0 50px 28px rgba(10, 217, 245, 0.45),
-      0 0 120px 70px rgba(10, 217, 245, 0.12);
-  }
-  100% {
-    opacity: 0;
-    box-shadow:
-      0 0 0 0 transparent,
-      0 0 0 0 transparent,
-      0 0 0 140vmax rgba(10, 217, 245, 0);
-  }
-}
 
-@keyframes caret-blink {
-  0%,
-  49% {
-    opacity: 1;
+  .menu-link {
+    padding: 0.7rem 0.55rem;
+    font-size: 0.92rem;
+    letter-spacing: 0.14em;
   }
-  50%,
-  100% {
-    opacity: 0;
-  }
-}
 
-@keyframes crack-draw {
-  to {
-    stroke-dashoffset: 0;
+  .menu-contact-items {
+    gap: 0.25rem;
+    padding: 0.1rem 0 0.85rem 0.2rem;
+  }
+
+  .menu-hours-label {
+    margin-top: 0.2rem;
+    font-size: 0.68rem;
+  }
+
+  .menu-hours {
+    margin-bottom: 0.3rem;
+    font-size: 0.8rem;
+  }
+
+  .menu-contact-link {
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.55rem 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .menu-contact-link svg {
+    margin-top: 0.12rem;
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .ink-machine svg {
+    width: 28px;
+    height: 42px;
+  }
+
+  .ink-line {
+    padding-top: 2.6rem;
+  }
+
+  .ink-script {
+    font-size: clamp(1.15rem, 5.8vw, 2rem);
+    letter-spacing: 0.05em;
+  }
+
+  .ink-write {
+    max-width: 100vw;
+    padding-inline: 0.75rem;
   }
 }
 
