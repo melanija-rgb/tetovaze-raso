@@ -17,15 +17,29 @@
     setOpen(false);
   }
 
+  function setContactOpen(open) {
+    const contactToggle = panel.querySelector("[data-menu-contact-toggle]");
+    const contactItems = panel.querySelector("[data-menu-contact-items]");
+    if (!contactToggle || !contactItems) return;
+    contactToggle.classList.toggle("is-open", open);
+    contactToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    contactItems.hidden = !open;
+  }
+
   toggle.addEventListener("click", () => {
     setOpen(panel.hidden);
   });
 
   backdrop?.addEventListener("click", closeMenu);
 
+  panel.querySelector("[data-menu-contact-toggle]")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    const contactItems = panel.querySelector("[data-menu-contact-items]");
+    setContactOpen(Boolean(contactItems?.hidden));
+  });
+
   panel.querySelectorAll("[data-menu-close]").forEach((el) => {
     el.addEventListener("click", () => {
-      // Let navigation / booking handlers run; close after
       closeMenu();
     });
   });
