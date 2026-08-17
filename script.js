@@ -14,8 +14,6 @@ const MONTHS = [
 ];
 
 const TIMES = [
-  "08:00",
-  "09:00",
   "10:00",
   "11:00",
   "12:00",
@@ -23,6 +21,7 @@ const TIMES = [
   "14:00",
   "15:00",
   "16:00",
+  "17:00",
 ];
 
 const API = "/api";
@@ -357,8 +356,9 @@ function renderCalendar() {
     btn.textContent = String(day);
 
     const isPast = date < today;
-    const isSunday = date.getDay() === 0;
-    if (isPast || isSunday) {
+    const weekday = date.getDay();
+    const isWeekend = weekday === 0 || weekday === 6;
+    if (isPast || isWeekend) {
       btn.disabled = true;
       btn.classList.add("is-muted");
     }

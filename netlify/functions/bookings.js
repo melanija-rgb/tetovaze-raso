@@ -11,8 +11,6 @@ const {
 } = require("./_shared/store");
 
 const ALLOWED_TIMES = new Set([
-  "08:00",
-  "09:00",
   "10:00",
   "11:00",
   "12:00",
@@ -20,6 +18,7 @@ const ALLOWED_TIMES = new Set([
   "14:00",
   "15:00",
   "16:00",
+  "17:00",
 ]);
 
 function isValidDate(iso) {
@@ -29,7 +28,8 @@ function isValidDate(iso) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   if (d < today) return false;
-  if (d.getDay() === 0) return false;
+  const day = d.getDay();
+  if (day === 0 || day === 6) return false;
   return true;
 }
 
