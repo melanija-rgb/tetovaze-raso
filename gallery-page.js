@@ -33,25 +33,21 @@ async function loadGallery() {
   if (!galleryGrid) return;
 
   try {
-    const [manifestRes, apiRes] = await Promise.all([
-      fetch("/assets/gallery/manifest.json", { cache: "no-store" }),
-      fetch(`${API}/gallery`),
-    ]);
+    // API index is source of truth (respects admin deletes/order).
+    // Manifest is only a fallback if the API is unavailable.
+    const apiRes = await fetch(`${API}/gallery`, { cache: "no-store" });
+    let items = [];
 
-    let staticItems = [];
-    if (manifestRes.ok) {
-      staticItems = itemsFromManifest(await manifestRes.json());
-    }
-
-    let uploaded = [];
     if (apiRes.ok) {
       const data = await apiRes.json();
-      uploaded = Array.isArray(data.items)
-        ? data.items.filter((item) => item.source !== "static")
-        : [];
+      items = Array.isArray(data.items) ? data.items : [];
+    } else {
+      const manifestRes = await fetch("/assets/gallery/manifest.json", { cache: "no-store" });
+      if (manifestRes.ok) {
+        items = itemsFromManifest(await manifestRes.json());
+      }
     }
 
-    const items = [...uploaded, ...staticItems];
     galleryGrid.innerHTML = "";
 
     if (!items.length) {

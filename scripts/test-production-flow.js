@@ -50,8 +50,11 @@ function assert( cond, msg) {
 
 (async () => {
   // Reset gallery index so seed runs cleanly for this test
-  const indexFile = path.join(process.cwd(), ".data", "gallery", "index.json");
+  const galleryDir = path.join(process.cwd(), ".data", "gallery");
+  const indexFile = path.join(galleryDir, "index.json");
+  const deletedFile = path.join(galleryDir, "deleted-static.json");
   if (fs.existsSync(indexFile)) fs.unlinkSync(indexFile);
+  if (fs.existsSync(deletedFile)) fs.unlinkSync(deletedFile);
 
   console.log("1) Public creates booking…");
   const date = tomorrowWeekday();
@@ -99,6 +102,12 @@ function assert( cond, msg) {
     !(after.data.items || []).some((i) => i.id === victim.id),
     "deleted image gone from API"
   );
+  if (victim.staticPath) {
+    assert(
+      !(after.data.items || []).some((i) => i.staticPath === victim.staticPath),
+      "deleted static path must not be re-seeded"
+    );
+  }
   console.log("   OK deleted", victim.id);
 
   console.log("FLOW PASS — booking + gallery API ready for production");

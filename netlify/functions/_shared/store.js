@@ -246,11 +246,54 @@ async function getGalleryImage(id) {
   );
 }
 
+async function getDeletedStaticPaths() {
+  return withStore(
+    async (store) => {
+      const list = await store.get("gallery/deleted-static", { type: "json" });
+      return Array.isArray(list) ? list.map((p) => String(p).replace(/\\/g, "/")) : [];
+    },
+    () => {
+      const file = localPath("gallery", "deleted-static.json");
+      if (!fs.existsSync(file)) return [];
+      try {
+        const list = JSON.parse(fs.readFileSync(file, "utf8"));
+        return Array.isArray(list) ? list.map((p) => String(p).replace(/\\/g, "/")) : [];
+      } catch {
+        return [];
+      }
+    }
+  );
+}
+
+async function setDeletedStaticPaths(paths) {
+  const normalized = [...new Set(paths.map((p) => String(p).replace(/\\/g, "/")))];
+  return withStore(
+    (store) => store.setJSON("gallery/deleted-static", normalized),
+    () => {
+      fs.writeFileSync(
+        localPath("gallery", "deleted-static.json"),
+        JSON.stringify(normalized, null, 2)
+      );
+    }
+  );
+}
+
+async function rememberDeletedStaticPath(staticPath) {
+  if (!staticPath) return;
+  const normalized = String(staticPath).replace(/\\/g, "/");
+  const existing = await getDeletedStaticPaths();
+  if (existing.includes(normalized)) return;
+  await setDeletedStaticPaths([...existing, normalized]);
+}
+
 async function deleteGalleryImage(id) {
   const index = await getGalleryIndex();
   const item = index.find((entry) => entry.id === id);
 
-  if (item?.source !== "static") {
+  if (item?.source === "static" && item.staticPath) {
+    // Remember so ensureGallerySeeded does not re-add this manifest path.
+    await rememberDeletedStaticPath(item.staticPath);
+  } else if (item?.source !== "static") {
     await withStore(
       (store) => store.delete(`gallery/files/${id}`),
       () => {
@@ -314,27 +357,39 @@ function buildStaticSeed() {
 async function ensureGallerySeeded() {
   const seeded = buildStaticSeed();
   let existing = [];
+  let deletedPaths = [];
   try {
     existing = await getGalleryIndex();
   } catch {
     existing = [];
   }
+  try {
+    deletedPaths = await getDeletedStaticPaths();
+  } catch {
+    deletedPaths = [];
+  }
+  const deletedSet = new Set(deletedPaths);
 
   if (!existing.length) {
-    if (!seeded.length) return [];
+    const initial = seeded.filter((item) => !deletedSet.has(item.staticPath));
+    if (!initial.length) return [];
     try {
-      await setGalleryIndex(seeded);
+      await setGalleryIndex(initial);
     } catch {
       // Persist failed — still serve static portfolio from CDN.
     }
-    return seeded;
+    return initial;
   }
 
   // Merge newly added static files from manifest without restoring deleted ones.
   const knownPaths = new Set(
-    existing.filter((item) => item.source === "static" && item.staticPath).map((item) => item.staticPath)
+    existing
+      .filter((item) => item.source === "static" && item.staticPath)
+      .map((item) => String(item.staticPath).replace(/\\/g, "/"))
   );
-  const missing = seeded.filter((item) => !knownPaths.has(item.staticPath));
+  const missing = seeded.filter(
+    (item) => !knownPaths.has(item.staticPath) && !deletedSet.has(item.staticPath)
+  );
   if (!missing.length) return existing;
 
   const maxStaticNum = existing.reduce((max, item) => {
