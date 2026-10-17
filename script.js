@@ -136,24 +136,24 @@ async function typeInkPhrase() {
   inkIntro.classList.remove("is-writing");
 }
 
-function shardBudget() {
-  const coarse = window.matchMedia("(pointer: coarse)").matches;
-  const narrow = window.matchMedia("(max-width: 719px)").matches;
-  if (coarse || narrow) return 22;
-  return 28;
+// Small-screen shatter. Desktop used to draw more, thinner pieces.
+const SHATTER_SHARDS = 22;
+const SHATTER_PARTICLES = 40;
+const SHATTER_REF_DIAG = Math.hypot(390, 844);
+
+function shatterScaleFor(width, height) {
+  // Keep the current phone animation pixel-for-pixel. On a larger window,
+  // grow strokes, sparks, and travel with the screen so the same effect
+  // keeps the same scale instead of becoming hairline cracks on huge slabs.
+  if (window.matchMedia("(max-width: 719px)").matches) return 1;
+  return Math.hypot(width, height) / SHATTER_REF_DIAG;
 }
 
-function particleBudget() {
-  const coarse = window.matchMedia("(pointer: coarse)").matches;
-  const narrow = window.matchMedia("(max-width: 719px)").matches;
-  if (coarse || narrow) return 40;
-  return 64;
-}
-
-function buildCrackBranches(cx, cy, w, h) {
+function buildCrackBranches(cx, cy, w, h, scale) {
   const branches = [];
   const rays = 12 + Math.floor(Math.random() * 5);
   const maxR = Math.hypot(w, h) * 0.78;
+  const jitter = 16 * scale;
 
   for (let i = 0; i < rays; i += 1) {
     const base = (i / rays) * Math.PI * 2 + (Math.random() - 0.5) * 0.16;
@@ -166,12 +166,12 @@ function buildCrackBranches(cx, cy, w, h) {
       const t = s / steps;
       ang += (Math.random() - 0.5) * 0.48;
       const dist = maxR * Math.pow(t, 0.82) * (0.75 + Math.random() * 0.35);
-      x = cx + Math.cos(ang) * dist + (Math.random() - 0.5) * 16;
-      y = cy + Math.sin(ang) * dist + (Math.random() - 0.5) * 16;
+      x = cx + Math.cos(ang) * dist + (Math.random() - 0.5) * jitter;
+      y = cy + Math.sin(ang) * dist + (Math.random() - 0.5) * jitter;
       pts.push({ x, y });
       if (s > 1 && Math.random() > 0.38) {
         const side = Math.random() > 0.5 ? 1 : -1;
-        const forkLen = 40 + Math.random() * 110;
+        const forkLen = (40 + Math.random() * 110) * scale;
         const forkAng = ang + side * (0.65 + Math.random() * 0.85);
         branches.push([
           { x, y },
@@ -191,21 +191,22 @@ function buildCrackBranches(cx, cy, w, h) {
   return branches;
 }
 
-function jaggedEdge(cx, cy, a0, a1, r, steps, jitter) {
+function jaggedEdge(cx, cy, a0, a1, r, steps, jitter, scale) {
   const pts = [];
+  const wobble = 10 * scale;
   for (let s = 0; s <= steps; s += 1) {
     const t = s / steps;
     const a = a0 + (a1 - a0) * t;
     const rr = r * (1 + (Math.random() - 0.5) * jitter);
     pts.push({
-      x: cx + Math.cos(a) * rr + (Math.random() - 0.5) * 10,
-      y: cy + Math.sin(a) * rr + (Math.random() - 0.5) * 10,
+      x: cx + Math.cos(a) * rr + (Math.random() - 0.5) * wobble,
+      y: cy + Math.sin(a) * rr + (Math.random() - 0.5) * wobble,
     });
   }
   return pts;
 }
 
-function buildShards(w, h, count) {
+function buildShards(w, h, count, scale) {
   const cx = w * 0.5;
   const cy = h * 0.5;
   const cover = Math.hypot(w, h) * 1.05;
@@ -238,26 +239,27 @@ function buildShards(w, h, count) {
       if (innerR < 10) {
         pts = [
           {
-            x: cx + (Math.random() - 0.5) * 14,
-            y: cy + (Math.random() - 0.5) * 14,
+            x: cx + (Math.random() - 0.5) * 14 * scale,
+            y: cy + (Math.random() - 0.5) * 14 * scale,
           },
-          ...jaggedEdge(cx, cy, a0, a1, outerR, outerSteps, 0.18),
+          ...jaggedEdge(cx, cy, a0, a1, outerR, outerSteps, 0.18, scale),
         ];
       } else {
         pts = [
-          ...jaggedEdge(cx, cy, a0, a1, outerR, outerSteps, 0.15),
-          ...jaggedEdge(cx, cy, a1, a0, innerR, 2 + (i % 2), 0.12),
+          ...jaggedEdge(cx, cy, a0, a1, outerR, outerSteps, 0.15, scale),
+          ...jaggedEdge(cx, cy, a1, a0, innerR, 2 + (i % 2), 0.12, scale),
         ];
       }
 
       // Break silhouette so pieces never look round
+      const notch = 28 * scale;
       for (let k = pts.length - 1; k > 0; k -= 1) {
         if (Math.random() > 0.55) {
           const prev = pts[k - 1];
           const cur = pts[k];
           pts.splice(k, 0, {
-            x: (prev.x + cur.x) * 0.5 + (Math.random() - 0.5) * 28,
-            y: (prev.y + cur.y) * 0.5 + (Math.random() - 0.5) * 28,
+            x: (prev.x + cur.x) * 0.5 + (Math.random() - 0.5) * notch,
+            y: (prev.y + cur.y) * 0.5 + (Math.random() - 0.5) * notch,
           });
         }
       }
@@ -274,7 +276,7 @@ function buildShards(w, h, count) {
       const dist = Math.hypot(bx - cx, by - cy) || 1;
       const nx = (bx - cx) / dist;
       const ny = (by - cy) / dist;
-      const speed = 11 + Math.random() * 15 + dist * 0.01;
+      const speed = (11 + Math.random() * 15) * scale + dist * 0.01;
       const shade = 4 + Math.floor(Math.random() * 14);
       const silver = 190 + Math.floor(Math.random() * 40);
 
@@ -285,8 +287,8 @@ function buildShards(w, h, count) {
         x: 0,
         y: 0,
         rot: 0,
-        vx: nx * speed + (Math.random() - 0.5) * 3.5,
-        vy: ny * speed + (Math.random() - 0.5) * 3.5,
+        vx: nx * speed + (Math.random() - 0.5) * 3.5 * scale,
+        vy: ny * speed + (Math.random() - 0.5) * 3.5 * scale,
         vr: (Math.random() - 0.5) * 0.5,
         fill: `rgb(${shade},${shade},${shade + 4})`,
         edge: `rgba(${silver},${silver + 6},${silver + 12},${0.45 + Math.random() * 0.35})`,
@@ -324,19 +326,19 @@ function runGlassShatter() {
 
     const cx = width * 0.5;
     const cy = height * 0.5;
-    const cracks = buildCrackBranches(cx, cy, width, height);
-    const shards = buildShards(width, height, shardBudget());
+    const scale = shatterScaleFor(width, height);
+    const cracks = buildCrackBranches(cx, cy, width, height, scale);
+    const shards = buildShards(width, height, SHATTER_SHARDS, scale);
     const particles = [];
-    const pCount = particleBudget();
-    for (let i = 0; i < pCount; i += 1) {
+    for (let i = 0; i < SHATTER_PARTICLES; i += 1) {
       const ang = Math.random() * Math.PI * 2;
-      const spd = 6 + Math.random() * 14;
-      const len = 2.5 + Math.random() * 8;
-      const thick = 0.4 + Math.random() * 1.15;
+      const spd = (6 + Math.random() * 14) * scale;
+      const len = (2.5 + Math.random() * 8) * scale;
+      const thick = (0.4 + Math.random() * 1.15) * scale;
       const tone = 150 + Math.floor(Math.random() * 80);
       particles.push({
-        x: cx + (Math.random() - 0.5) * 40,
-        y: cy + (Math.random() - 0.5) * 40,
+        x: cx + (Math.random() - 0.5) * 40 * scale,
+        y: cy + (Math.random() - 0.5) * 40 * scale,
         vx: Math.cos(ang) * spd,
         vy: Math.sin(ang) * spd,
         rot: ang + Math.PI * 0.5,
@@ -374,10 +376,10 @@ function runGlassShatter() {
           ctx.moveTo(pts[0].x, pts[0].y);
           for (let p = 1; p < visible; p += 1) ctx.lineTo(pts[p].x, pts[p].y);
           ctx.strokeStyle = `rgba(160, 170, 180, ${0.15 + crackT * 0.25})`;
-          ctx.lineWidth = i % 3 === 0 ? 2.8 : 1.8;
+          ctx.lineWidth = (i % 3 === 0 ? 2.8 : 1.8) * scale;
           ctx.stroke();
           ctx.strokeStyle = `rgba(236, 242, 248, ${0.5 + crackT * 0.45})`;
-          ctx.lineWidth = i % 3 === 0 ? 1.35 : 0.85;
+          ctx.lineWidth = (i % 3 === 0 ? 1.35 : 0.85) * scale;
           ctx.stroke();
         }
       } else {
@@ -389,7 +391,7 @@ function runGlassShatter() {
           const local = Math.max(0, Math.min(1, (ease - s.delay) / Math.max(0.001, 1 - s.delay)));
           const le = 1 - Math.pow(1 - local, 2.05);
           s.x = s.vx * le * 58;
-          s.y = s.vy * le * 58 + le * le * 48;
+          s.y = s.vy * le * 58 + le * le * 48 * scale;
           s.rot = s.vr * le * 10;
 
           ctx.save();
@@ -405,7 +407,7 @@ function runGlassShatter() {
           ctx.fill();
           ctx.globalAlpha = Math.max(0, 0.8 - le * 0.6);
           ctx.strokeStyle = s.edge;
-          ctx.lineWidth = 1.2;
+          ctx.lineWidth = 1.2 * scale;
           ctx.stroke();
           ctx.restore();
         }
@@ -413,7 +415,7 @@ function runGlassShatter() {
         for (let i = 0; i < particles.length; i += 1) {
           const p = particles[i];
           p.x += p.vx;
-          p.y += p.vy + 0.1;
+          p.y += p.vy + 0.1 * scale;
           p.vx *= 0.985;
           p.vy *= 0.985;
           p.rot += p.vr;
