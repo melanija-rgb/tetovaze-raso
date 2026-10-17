@@ -77,14 +77,37 @@ async function loadBookings() {
   bookingsBody.innerHTML = "";
   bookings.forEach((b) => {
     const tr = document.createElement("tr");
+    const status = b.status || "pending";
     tr.innerHTML = `
       <td>${b.date}</td>
       <td>${b.time}</td>
       <td>${escapeHtml(`${b.firstName} ${b.lastName}`)}</td>
       <td>${escapeHtml(b.phone)}</td>
-      <td>${escapeHtml(b.status || "pending")}</td>
+      <td>${escapeHtml(statusLabel(status))}</td>
       <td></td>
     `;
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+
+    if (status !== "confirmed" && status !== "cancelled") {
+      const confirmBtn = document.createElement("button");
+      confirmBtn.type = "button";
+      confirmBtn.textContent = "Potvrdi";
+      confirmBtn.addEventListener("click", () => setBookingStatus(b.id, "confirmed"));
+      actions.appendChild(confirmBtn);
+    }
+
+    if (status !== "cancelled") {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.textContent = "Otkaži";
+      cancelBtn.addEventListener("click", () => {
+        if (!confirm("Otkazati ovaj termin?")) return;
+        setBookingStatus(b.id, "cancelled");
+      });
+      actions.appendChild(cancelBtn);
+    }
+
     const del = document.createElement("button");
     del.type = "button";
     del.textContent = "Obriši";
@@ -100,9 +123,29 @@ async function loadBookings() {
       }
       loadBookings();
     });
-    tr.lastElementChild.appendChild(del);
+    actions.appendChild(del);
+    tr.lastElementChild.appendChild(actions);
     bookingsBody.appendChild(tr);
   });
+}
+
+function statusLabel(status) {
+  if (status === "confirmed") return "Potvrđen";
+  if (status === "cancelled") return "Otkazan";
+  return "Na čekanju";
+}
+
+async function setBookingStatus(id, status) {
+  const result = await api("/bookings", {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ id, status }),
+  });
+  if (!result.res.ok) {
+    alert(result.data.error || "Promjena statusa nije uspjela.");
+    return;
+  }
+  loadBookings();
 }
 
 function escapeHtml(value) {

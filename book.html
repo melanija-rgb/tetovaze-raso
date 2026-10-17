@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=menu3" />
+    <link rel="stylesheet" href="styles.css?v=book16" />
   </head>
   <body class="page-book">
     <header class="menu-bar">
@@ -88,38 +88,51 @@
             </div>
             <div class="calendar-grid" data-cal-grid></div>
             <input type="hidden" name="date" data-date-input required />
+            <p class="booking-error" data-error-for="date" hidden></p>
           </div>
 
           <fieldset class="time-field">
             <legend>Vrijeme</legend>
             <div class="time-grid" data-time-grid></div>
             <input type="hidden" name="time" data-time-input required />
+            <p class="booking-error" data-error-for="time" hidden></p>
           </fieldset>
 
-          <label class="field">
-            <span>Ime</span>
-            <input type="text" name="firstName" autocomplete="given-name" required />
-          </label>
+          <div class="field-block">
+            <label class="field">
+              <span>Ime</span>
+              <input type="text" name="firstName" autocomplete="given-name" required aria-describedby="error-firstName" />
+            </label>
+            <p class="booking-error" id="error-firstName" data-error-for="firstName" hidden></p>
+          </div>
 
-          <label class="field">
-            <span>Prezime</span>
-            <input type="text" name="lastName" autocomplete="family-name" required />
-          </label>
+          <div class="field-block">
+            <label class="field">
+              <span>Prezime</span>
+              <input type="text" name="lastName" autocomplete="family-name" required aria-describedby="error-lastName" />
+            </label>
+            <p class="booking-error" id="error-lastName" data-error-for="lastName" hidden></p>
+          </div>
 
-          <label class="field">
-            <span>Broj telefona</span>
-            <input
-              type="tel"
-              name="phone"
-              autocomplete="tel"
-              inputmode="tel"
-              placeholder="+387 ..."
-              required
-            />
-          </label>
+          <div class="field-block">
+            <label class="field">
+              <span>Broj telefona</span>
+              <input
+                type="tel"
+                name="phone"
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="+387 ..."
+                required
+                aria-describedby="error-phone"
+              />
+            </label>
+            <p class="booking-error" id="error-phone" data-error-for="phone" hidden></p>
+          </div>
 
           <p class="booking-error" data-booking-error hidden></p>
           <p class="booking-success" data-booking-success hidden></p>
+          <button class="submit-btn" type="button" data-new-booking hidden>Nova rezervacija</button>
 
           <button class="submit-btn" type="submit" data-submit-booking>Pošalji zahtjev</button>
         </form>
@@ -154,6 +167,6 @@
     </div>
 
     <script src="menu.js?v=3"></script>
-    <script src="script.js?v=book15"></script>
+    <script src="script.js?v=book16"></script>
   </body>
 </html>

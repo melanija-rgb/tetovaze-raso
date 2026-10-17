@@ -521,11 +521,163 @@ function closeBooking() {
   openBtns[0]?.focus();
 }
 
-function clearMessages() {
+const PHONE_ERROR = "Unesi ispravan broj telefona (8–15 cifara).";
+const NAME_MAX = 60;
+const RECEIPT_KEY = "tetovazeras_booking_receipt";
+const REQUEST_KEY = "tetovazeras_booking_request";
+const SERVER_FIELD = {
+  [PHONE_ERROR]: "phone",
+  "Datum nije dostupan.": "date",
+  "Vrijeme nije dostupno.": "time",
+  "Ime može imati najviše 60 karaktera.": "firstName",
+  "Prezime može imati najviše 60 karaktera.": "lastName",
+};
+
+let formTried = false;
+let submitting = false;
+
+function clearBanner() {
+  if (!errorEl) return;
   errorEl.hidden = true;
-  successEl.hidden = true;
   errorEl.textContent = "";
-  successEl.textContent = "";
+}
+
+function setFieldError(name, message) {
+  const el = document.querySelector(`[data-error-for="${name}"]`);
+  const input = form?.querySelector(`[name="${name}"]`);
+  if (el) {
+    el.hidden = !message;
+    el.textContent = message || "";
+  }
+  if (input) input.setAttribute("aria-invalid", message ? "true" : "false");
+}
+
+function fieldNameError(value, kind) {
+  const name = String(value || "").trim();
+  if (!name) return kind === "firstName" ? "Unesi ime." : "Unesi prezime.";
+  if (name.length > NAME_MAX) {
+    return kind === "firstName"
+      ? "Ime može imati najviše 60 karaktera."
+      : "Prezime može imati najviše 60 karaktera.";
+  }
+  return "";
+}
+
+function fieldPhoneError(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "Unesi broj telefona.";
+  if (raw.length > 40) return PHONE_ERROR;
+  const stripped = raw.replace(/[\s()\u2010\u2011\u2012\u2013\u2014-]/g, "");
+  if (!/^\+?\d+$/.test(stripped)) return PHONE_ERROR;
+  const digits = stripped.replace(/\D/g, "");
+  if (digits.length < 8 || digits.length > 15 || /^0+$/.test(digits)) return PHONE_ERROR;
+  return "";
+}
+
+function readPayload() {
+  const data = new FormData(form);
+  return {
+    firstName: String(data.get("firstName") || "").trim(),
+    lastName: String(data.get("lastName") || "").trim(),
+    phone: String(data.get("phone") || "").trim(),
+    date: String(data.get("date") || "").trim(),
+    time: String(data.get("time") || "").trim(),
+  };
+}
+
+function validatePayload(payload) {
+  return {
+    date: payload.date ? "" : "Izaberi datum.",
+    time: payload.time ? "" : "Izaberi vrijeme.",
+    firstName: fieldNameError(payload.firstName, "firstName"),
+    lastName: fieldNameError(payload.lastName, "lastName"),
+    phone: fieldPhoneError(payload.phone),
+  };
+}
+
+function applyFieldErrors(errors) {
+  let invalid = false;
+  Object.entries(errors).forEach(([name, message]) => {
+    setFieldError(name, message);
+    if (message) invalid = true;
+  });
+  return invalid;
+}
+
+function refreshFieldErrors() {
+  if (!formTried || !form) return;
+  applyFieldErrors(validatePayload(readPayload()));
+}
+
+function confirmationText(receipt) {
+  return `Termin sačuvan: ${receipt.date} u ${receipt.time} — ${receipt.firstName} ${receipt.lastName}. Broj rezervacije: ${receipt.id}.`;
+}
+
+function showReceipt(receipt) {
+  if (!successEl || !receipt?.id) return;
+  successEl.hidden = false;
+  successEl.textContent = confirmationText(receipt);
+  const dismiss = document.querySelector("[data-new-booking]");
+  if (dismiss) dismiss.hidden = false;
+}
+
+function clearReceipt() {
+  try {
+    localStorage.removeItem(RECEIPT_KEY);
+  } catch {
+    // ignore private-mode storage
+  }
+  if (successEl) {
+    successEl.hidden = true;
+    successEl.textContent = "";
+  }
+  const dismiss = document.querySelector("[data-new-booking]");
+  if (dismiss) dismiss.hidden = true;
+}
+
+function restoreReceipt() {
+  try {
+    const receipt = JSON.parse(localStorage.getItem(RECEIPT_KEY) || "null");
+    if (!receipt?.id || !receipt.date || !receipt.time || !receipt.firstName || !receipt.lastName) return;
+    showReceipt(receipt);
+  } catch {
+    try {
+      localStorage.removeItem(RECEIPT_KEY);
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function sameRequest(saved, payload) {
+  return (
+    saved &&
+    saved.firstName === payload.firstName &&
+    saved.lastName === payload.lastName &&
+    saved.phone === payload.phone &&
+    saved.date === payload.date &&
+    saved.time === payload.time &&
+    typeof saved.requestId === "string"
+  );
+}
+
+function requestIdFor(payload) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(REQUEST_KEY) || "null");
+    if (sameRequest(saved, payload)) return saved.requestId;
+  } catch {
+    // create a fresh id below
+  }
+  const requestId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  try {
+    sessionStorage.setItem(REQUEST_KEY, JSON.stringify({ ...payload, requestId }));
+  } catch {
+    // still send the id for this attempt
+  }
+  return requestId;
 }
 
 async function loadAvailability(date) {
@@ -561,7 +713,8 @@ function renderTimes() {
       selectedTime = time;
       timeInput.value = time;
       renderTimes();
-      clearMessages();
+      clearBanner();
+      refreshFieldErrors();
     });
     timeGrid.appendChild(btn);
   });
@@ -606,7 +759,8 @@ function renderCalendar() {
       selectedTime = null;
       timeInput.value = "";
       renderCalendar();
-      clearMessages();
+      clearBanner();
+      refreshFieldErrors();
       await loadAvailability(iso);
       renderTimes();
     });
@@ -747,25 +901,33 @@ document.querySelector("[data-cal-next]").addEventListener("click", () => {
   renderCalendar();
 });
 
+["firstName", "lastName", "phone"].forEach((name) => {
+  form.querySelector(`[name="${name}"]`)?.addEventListener("input", () => {
+    clearBanner();
+    refreshFieldErrors();
+  });
+});
+
+document.querySelector("[data-new-booking]")?.addEventListener("click", () => {
+  clearReceipt();
+  try {
+    sessionStorage.removeItem(REQUEST_KEY);
+  } catch {
+    // ignore
+  }
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  clearMessages();
+  if (submitting) return;
+  clearBanner();
 
-  const data = new FormData(form);
-  const payload = {
-    firstName: String(data.get("firstName") || "").trim(),
-    lastName: String(data.get("lastName") || "").trim(),
-    phone: String(data.get("phone") || "").trim(),
-    date: String(data.get("date") || "").trim(),
-    time: String(data.get("time") || "").trim(),
-  };
+  const payload = readPayload();
+  formTried = true;
+  if (applyFieldErrors(validatePayload(payload))) return;
 
-  if (!payload.date || !payload.time || !payload.firstName || !payload.lastName || !payload.phone) {
-    errorEl.hidden = false;
-    errorEl.textContent = "Popuni datum, vrijeme, ime, prezime i broj telefona.";
-    return;
-  }
-
+  const requestId = requestIdFor(payload);
+  submitting = true;
   submitBtn.disabled = true;
   submitBtn.textContent = "Šaljem…";
 
@@ -773,13 +935,24 @@ form.addEventListener("submit", async (event) => {
     const res = await fetch(`${API}/bookings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, requestId }),
     });
     const result = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      errorEl.hidden = false;
-      errorEl.textContent = result.error || "Rezervacija nije uspjela.";
+      if (res.status === 409) {
+        try {
+          sessionStorage.removeItem(REQUEST_KEY);
+        } catch {
+          // ignore
+        }
+      }
+      const field = SERVER_FIELD[result.error];
+      if (field) setFieldError(field, result.error);
+      else {
+        errorEl.hidden = false;
+        errorEl.textContent = result.error || "Rezervacija nije uspjela.";
+      }
       if (payload.date) {
         await loadAvailability(payload.date);
         renderTimes();
@@ -787,20 +960,44 @@ form.addEventListener("submit", async (event) => {
       return;
     }
 
-    successEl.hidden = false;
-    successEl.textContent = `Termin sačuvan: ${payload.date} u ${payload.time} — ${payload.firstName} ${payload.lastName}.`;
+    try {
+      sessionStorage.removeItem(REQUEST_KEY);
+    } catch {
+      // ignore
+    }
+
+    const booking = result.booking || {};
+    const receipt = {
+      id: booking.id,
+      date: booking.date || payload.date,
+      time: booking.time || payload.time,
+      firstName: booking.firstName || payload.firstName,
+      lastName: booking.lastName || payload.lastName,
+    };
+    if (receipt.id) {
+      try {
+        localStorage.setItem(RECEIPT_KEY, JSON.stringify(receipt));
+      } catch {
+        // confirmation still shows for this page view
+      }
+      showReceipt(receipt);
+    }
+
     form.reset();
+    formTried = false;
     selectedDate = null;
     selectedTime = null;
     dateInput.value = "";
     timeInput.value = "";
     takenTimes = new Set();
+    applyFieldErrors({ date: "", time: "", firstName: "", lastName: "", phone: "" });
     renderCalendar();
     renderTimes();
   } catch {
     errorEl.hidden = false;
     errorEl.textContent = "Nema veze sa serverom. Pokušaj ponovo.";
   } finally {
+    submitting = false;
     submitBtn.disabled = false;
     submitBtn.textContent = "Pošalji zahtjev";
   }
@@ -809,6 +1006,7 @@ form.addEventListener("submit", async (event) => {
 renderCalendar();
 renderTimes();
 loadGallery();
+restoreReceipt();
 
 if (isBookPage) {
   const skipIntro = new URLSearchParams(window.location.search).has("direct");

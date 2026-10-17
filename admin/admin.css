@@ -217,6 +217,12 @@ td button {
   padding: 0.35rem 0.55rem;
 }
 
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .upload-form {
   display: grid;
   gap: 0.25rem;

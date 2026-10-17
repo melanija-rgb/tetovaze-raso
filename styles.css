@@ -810,6 +810,12 @@ body.is-locked {
   border-color: var(--ink);
 }
 
+.field-block .booking-error,
+.calendar .booking-error,
+.time-field .booking-error {
+  margin: 0.35rem 0 0;
+}
+
 .submit-btn {
   appearance: none;
   border: 1px solid var(--ink);
@@ -826,6 +832,11 @@ body.is-locked {
 
 .submit-btn:hover {
   background: color-mix(in srgb, var(--ink-solid) 24%, transparent);
+}
+
+.submit-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .booking-error,

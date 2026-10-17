@@ -5,11 +5,12 @@
   "description": "Tetovažе Raš — booking + admin (Netlify)",
   "scripts": {
     "dev": "node scripts/local-server.js",
+    "test": "node scripts/test-booking-rules.js",
     "test:flow": "node scripts/test-flow.js",
     "test:prod": "node scripts/test-production-flow.js"
   },
   "dependencies": {
-    "@netlify/blobs": "^9.1.1"
+    "@netlify/blobs": "^10.7.13"
   },
   "devDependencies": {
     "netlify-cli": "^27.1.1"
