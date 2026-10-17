@@ -41,9 +41,10 @@ On first gallery request the portfolio is seeded into the shared index; new uplo
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| POST | `/api/bookings` | public | create reservation |
-| GET | `/api/availability?date=` | public | taken times |
+| POST | `/api/bookings` | public | create reservation (pending) |
+| GET | `/api/availability?date=` | public | taken times (cancelled slots are free) |
 | GET/DELETE | `/api/bookings` | admin | list / delete |
+| PATCH | `/api/bookings` | admin | `{id, status: "confirmed"\|"cancelled"}` |
 | POST | `/api/admin-login` | public | `{password}` → token |
 | GET | `/api/gallery` | public | list images |
 | POST/DELETE | `/api/gallery` | admin | upload / delete |

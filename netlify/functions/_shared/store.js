@@ -186,6 +186,104 @@ async function findConflict(date, time) {
   return all.find((b) => b.date === date && b.time === time && b.status !== "cancelled");
 }
 
+function slotStorageKey(date, time) {
+  return `slots/${date}_${time}`;
+}
+
+function slotFileName(date, time) {
+  return `${date}_${time}.json`;
+}
+
+function readLocalSlot(date, time) {
+  const file = localPath("slots", slotFileName(date, time));
+  if (!fs.existsSync(file)) return null;
+  const raw = fs.readFileSync(file, "utf8");
+  if (!raw) return null;
+  return JSON.parse(raw);
+}
+
+/**
+ * Atomic slot claim. Netlify Blobs uses onlyIfNew (create-if-absent).
+ * Local dev uses an exclusive file create so two overlapping writes
+ * cannot both succeed.
+ */
+async function claimSlot(date, time, booking) {
+  const key = slotStorageKey(date, time);
+  return withStore(
+    async (store) => {
+      const result = await store.setJSON(key, booking, { onlyIfNew: true });
+      if (!result || typeof result.modified !== "boolean") {
+        const err = new Error("Atomicni upis termina nije podržan.");
+        err.statusCode = 503;
+        throw err;
+      }
+      return result.modified === true;
+    },
+    () => {
+      const file = localPath("slots", slotFileName(date, time));
+      let fd;
+      try {
+        fd = fs.openSync(file, "wx");
+      } catch (error) {
+        if (error.code === "EEXIST") return false;
+        throw error;
+      }
+      try {
+        fs.writeFileSync(fd, JSON.stringify(booking));
+      } catch (error) {
+        try {
+          fs.closeSync(fd);
+        } catch {
+          // ignore close failure and still remove the incomplete claim
+        }
+        try {
+          fs.unlinkSync(file);
+        } catch {
+          // ignore
+        }
+        throw error;
+      }
+      fs.closeSync(fd);
+      return true;
+    }
+  );
+}
+
+async function getSlot(date, time) {
+  return withStore(
+    (store) => store.get(slotStorageKey(date, time), { type: "json" }),
+    () => readLocalSlot(date, time)
+  );
+}
+
+async function releaseSlot(date, time, bookingId) {
+  return withStore(
+    async (store) => {
+      const key = slotStorageKey(date, time);
+      if (bookingId) {
+        const current = await store.get(key, { type: "json" });
+        if (current?.id && current.id !== bookingId) return false;
+      }
+      await store.delete(key);
+      return true;
+    },
+    () => {
+      const file = localPath("slots", slotFileName(date, time));
+      if (!fs.existsSync(file)) return true;
+      if (bookingId) {
+        try {
+          const current = JSON.parse(fs.readFileSync(file, "utf8"));
+          if (current?.id && current.id !== bookingId) return false;
+        } catch {
+          // unreadable claim — drop it with this booking
+        }
+      }
+      fs.unlinkSync(file);
+      return true;
+    }
+  );
+}
+
 async function getGalleryIndex() {
   return withStore(
     async (store) => {
@@ -460,6 +558,9 @@ module.exports = {
   saveBooking,
   deleteBooking,
   findConflict,
+  claimSlot,
+  getSlot,
+  releaseSlot,
   getGalleryIndex,
   setGalleryIndex,
   saveGalleryImage,
